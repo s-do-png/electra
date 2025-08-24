@@ -63,9 +63,10 @@
         
         #chat-list { list-style: none; padding: 10px; margin: 0; overflow-y: auto; flex-grow: 1; }
         
+        /* --- FIX: চ্যাট লিস্ট এবং ডিলিট বাটনের জন্য নতুন স্টাইল --- */
         #chat-list li { 
             padding: 12px 15px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; 
-            display: flex; justify-content: flex-start; align-items: center; 
+            display: flex; justify-content: flex-start; align-items: center; /* বাম দিকে অ্যালাইন */
             transition: background-color 0.2s, color 0.2s;
         }
         #chat-list li:hover { background-color: var(--bg-tertiary); }
@@ -74,16 +75,16 @@
         .delete-chat-btn { 
             background: none; border: none; color: var(--text-secondary); cursor: pointer; 
             opacity: 0.7; font-size: 0.8em; font-weight: 500; text-transform: uppercase;
-            margin-right: 10px; 
+            margin-right: 10px; /* লেখা থেকে দূরত্ব */
             padding: 4px 0;
             transition: all 0.2s; 
-            flex-shrink: 0; 
+            flex-shrink: 0; /* বাটন যেন ছোট না হয় */
         }
         #chat-list li:hover .delete-chat-btn { color: var(--error-color); opacity: 1; }
         
         .chat-title {
-            flex-grow: 1;
-            word-break: break-word; 
+            flex-grow: 1; /* বাকি জায়গা নিয়ে নেবে */
+            word-break: break-word; /* লম্বা শব্দ ভেঙে যাবে */
         }
 
         body.sidebar-open #sidebar { left: 0; }
@@ -261,16 +262,7 @@
         const menuToggle = document.getElementById('menu-toggle'), overlay = document.getElementById('overlay');
         const imageUploadInput = document.getElementById('image-upload-input'), imageUploadBtn = document.getElementById('image-upload-btn'), previewContainer = document.getElementById('preview-container');
 
-        const storedApiKey = "AIzaSyC-lSq933H_CLpAwvWgRsMTmrnO4t9DuAw";
-
-        // --- FIX: সাউন্ড ইফেক্ট যোগ করা হয়েছে ---
-        const sendMessageSoundUrl = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaW5nIENTUkFQXlBLU0ZCAVBMRU4AAAAAFlBSRVZJRVcAAAAAAABLTVBDIABTQ0lB';
-        const receiveMessageSoundUrl = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaW5nIENTUkFQXlBLU0ZCAVBMRU4AAAAAFlBSRVZJRVcAAAAAAABMS1NKUwBGU0xG';
-        const sendSound = new Audio(sendMessageSoundUrl);
-        const receiveSound = new Audio(receiveMessageSoundUrl);
-        sendSound.volume = 0.5;
-        receiveSound.volume = 0.6;
-
+        const storedApiKey = "AIzaSyC-lSq933H_CLpAwvWgRsMTmrnO4t9DuAw"; // আপনার API KEY
 
         let allChats = { conversations: {}, activeChatId: null }, uploadedImage = { base64: null, mimeType: null };
         const STORAGE_KEY = 'electraAllChats_v2'; 
@@ -278,6 +270,7 @@
         function saveChats() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allChats)); }
         function loadChats() { const savedData = localStorage.getItem(STORAGE_KEY); if (savedData) { allChats = JSON.parse(savedData); if (!allChats.activeChatId || !allChats.conversations[allChats.activeChatId]) startNewChat(); } else startNewChat(); renderSidebar(); loadChat(allChats.activeChatId); }
         
+        // --- FIX: renderSidebar ফাংশনটি নতুন ডিজাইনের জন্য আপডেট করা হয়েছে ---
         function renderSidebar() { 
             chatList.innerHTML = ''; 
             Object.values(allChats.conversations)
@@ -287,18 +280,21 @@
                 li.dataset.chatId = chat.id; 
                 if (chat.id === allChats.activeChatId) li.classList.add('active'); 
 
+                // ডিলিট বাটন তৈরি
                 const deleteBtn = document.createElement('button'); 
                 deleteBtn.className = 'delete-chat-btn'; 
-                deleteBtn.textContent = 'delete';
+                deleteBtn.textContent = 'delete'; // '🗑️' এর পরিবর্তে লেখা
                 deleteBtn.onclick = (e) => { 
                     e.stopPropagation(); 
                     deleteChat(chat.id); 
                 }; 
                 
+                // টাইটেল দেখানোর জন্য span তৈরি
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'chat-title';
                 titleSpan.textContent = chat.title;
 
+                // li এলিমেন্টে প্রথমে বাটন এবং পরে টাইটেল যোগ করা
                 li.appendChild(deleteBtn);
                 li.appendChild(titleSpan);
                 
@@ -335,8 +331,6 @@
             const activeChat = allChats.conversations[allChats.activeChatId];
             
             appendMessage(messageText, 'user-message');
-            sendSound.play(); // --- FIX: পাঠানোর শব্দ প্লে করা হবে ---
-
             userInput.value = ""; userInput.style.height = 'auto'; userInput.dispatchEvent(new Event('input'));
             
             const lowerCaseMessage = messageText.toLowerCase();
@@ -357,4 +351,6 @@
             if (uploadedImage.base64) parts.push({ inline_data: { mime_type: uploadedImage.mimeType, data: uploadedImage.base64 } });
             if (messageText) parts.push({ text: messageText });
             activeChat.history.push({ role: 'user', parts: parts });
-        
+            clearPreview(); saveChats();
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:genera
